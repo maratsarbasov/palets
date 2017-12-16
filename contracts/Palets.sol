@@ -22,13 +22,12 @@ contract Palets is MintableToken {
 	}
 
 	function payRent(uint daysPassed) {
-		uint daysSincePayment = now - lastRentalPaymentDate;
-		if (daysSincePayment > 0) {
+		if (daysPassed > 0) {
 			for (uint i = 0; i < accounts.length; i++) 
 			{
 				address acc = accounts[i];
 				uint paletCount = palets[acc];
-				uint paymentAmount = paletCount.mul(daysSincePayment).mul(paletDayPrice).div(paletDeposit);
+				uint paymentAmount = paletCount.mul(daysPassed).mul(paletDayPrice).div(paletDeposit);
 				if (balances[acc] > paymentAmount) {
 					balances[acc] = balances[acc].sub(paymentAmount);
 				}
