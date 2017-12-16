@@ -28,12 +28,10 @@ contract Palets is MintableToken {
 			address acc = accounts[i];
 			uint paletCount = palets[acc];
 			uint paymentAmount = paletCount.mul(daysSincePayment).mul(paletDayPrice).div(paletDeposit);
-			if (balances[acc] > paymentAmount)
-			{
+			if (balances[acc] > paymentAmount) {
 				balances[acc] = balances[acc].sub(paymentAmount);
 			}
-			else
-			{
+			else {
 				balances[acc] = 0;
 			}
 		}
@@ -59,12 +57,15 @@ contract Palets is MintableToken {
 		palets[msg.sender] = palets[msg.sender].add(count);
 	}
 
-	// for debug
-	function avPalets() public returns(uint) {
-		return 1000;
+	function getPalets() public view returns (uint) {
+		return palets[msg.sender];
 	}
 
-	function receivedPalets(address _from, uint256 _count) addAccount(msg.sender) payRent returns (bool) {
+	function getTokens() public view returns (uint) {
+		return balances[msg.sender];
+	}
+
+	function receivedPalets(address _from, uint256 _count) payable addAccount(msg.sender) payRent returns (bool) {
 		require(_count <= palets[_from]);
 		uint256 _value = _count; // TODO
 	    require(_value <= balances[_from]);
