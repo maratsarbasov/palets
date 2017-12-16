@@ -13,7 +13,7 @@ contract Palets is MintableToken {
 	uint public lastRentalPaymentDate = 0;
 
 	mapping(address => uint256) palets;
-	address[] accounts;
+	address[] accounts; 
 
 	function Palets() public {
 		owner = msg.sender;
@@ -21,23 +21,28 @@ contract Palets is MintableToken {
 		// mint(owner, _amount);
 	}
 
-	modifier payRent() {
+	function payRent(uint daysPassed) {
 		uint daysSincePayment = now - lastRentalPaymentDate;
-		for (uint i = 0; i < accounts.length; i++) 
-		{
-			address acc = accounts[i];
-			uint paletCount = palets[acc];
-			uint paymentAmount = paletCount.mul(daysSincePayment).mul(paletDayPrice).div(paletDeposit);
-			if (balances[acc] > paymentAmount) {
-				balances[acc] = balances[acc].sub(paymentAmount);
+		if (daysSincePayment > 0) {
+			for (uint i = 0; i < accounts.length; i++) 
+			{
+				address acc = accounts[i];
+				uint paletCount = palets[acc];
+				uint paymentAmount = paletCount.mul(daysSincePayment).mul(paletDayPrice).div(paletDeposit);
+				if (balances[acc] > paymentAmount) {
+					balances[acc] = balances[acc].sub(paymentAmount);
+				}
+				else {
+					balances[acc] = 0;
+				}
 			}
-			else {
-				balances[acc] = 0;
-			}
-		}
 
-		lastRentalPaymentDate = now;
-		_;
+			lastRentalPaymentDate = now;
+		}
+	}
+
+	function simulateDayPassed() public onlyOwner {
+		payRent(1);
 	}
 
 	// adds account to account list if it is new.
@@ -50,10 +55,14 @@ contract Palets is MintableToken {
 		_;
 	}
 
-	function beginRentPalet() public payable addAccount(msg.sender) payRent returns(bool) {
+	function beginRentPalet() public payable addAccount(msg.sender)  returns(bool) {
 		// require(msg.value == count.mul(paletDeposit))
+		uint daysSincePayment = now - lastRentalPaymentDate;
+
+		payRent(daysSincePayment);
 		uint256 count = msg.value.div(paletDeposit);
-		mint(msg.sender, count);
+
+		balances[msg.sender] = balances[msg.sender].add(count);
 		palets[msg.sender] = palets[msg.sender].add(count);
 	}
 
@@ -65,10 +74,13 @@ contract Palets is MintableToken {
 		return balances[msg.sender];
 	}
 
-	function receivedPalets(address _from, uint256 _count) payable addAccount(msg.sender) payRent returns (bool) {
+	function receivedPalets(address _from, uint256 _count) payable addAccount(msg.sender)  returns (bool) {
 		require(_count <= palets[_from]);
 		uint256 _value = _count; // TODO
 	    require(_value <= balances[_from]);
+	    
+	   	uint daysSincePayment = now - lastRentalPaymentDate;
+		payRent(daysSincePayment);
 
 	    // SafeMath.sub will throw if there is not enough balance.
 	    balances[_from] = balances[_from].sub(_value);
@@ -81,8 +93,11 @@ contract Palets is MintableToken {
 		return true;
 	}
 
-	function endRentPalet(address renter, uint256 _paletCount) onlyOwner payRent public returns (uint256) {
+	function endRentPalet(address renter, uint256 _paletCount) onlyOwner  public returns (uint256) {
 		require(_paletCount <= palets[renter]);
+		
+		uint daysSincePayment = now - lastRentalPaymentDate;
+		payRent(daysSincePayment);
 
 		uint value = balances[renter].mul(paletDayPrice);
 		if (!msg.sender.send(value)) {
